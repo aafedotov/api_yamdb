@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'api.apps.ApiConfig',
     'reviews.apps.ReviewsConfig',
     'rest_framework',
+    'users.apps.UsersConfig'
 ]
 
 MIDDLEWARE = [
@@ -67,7 +68,7 @@ DATABASES = {
     }
 }
 
-AUTH_USER_MODEL = 'reviews.User'
+AUTH_USER_MODEL = 'users.CustomUser'
 # Password validation
 
 AUTH_PASSWORD_VALIDATORS = [
