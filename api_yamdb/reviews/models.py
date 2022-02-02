@@ -124,6 +124,8 @@ class Title(models.Model):
 
 class Review(models.Model):
     """User reviews for works."""
+    title = models.ForeignKey(
+        Title, on_delete=models.CASCADE, related_name='reviews')
     text = models.TextField(verbose_name='Text')
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
@@ -144,9 +146,7 @@ class Review(models.Model):
         return self.text
 
 
-class Comments(models.Model):
-    title = models.ForeignKey(
-        Title, on_delete=models.CASCADE, related_name='reviews')
+class Comment(models.Model):
     review = models.ForeignKey(
         Review, on_delete=models.CASCADE, related_name='comments')
     text = models.TextField(verbose_name='Текст')
