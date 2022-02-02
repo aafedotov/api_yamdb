@@ -21,8 +21,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'api.apps.ApiConfig'
-    'reviews.apps.ReviewsConfig'
+    'api.apps.ApiConfig',
+    'reviews.apps.ReviewsConfig',
     'rest_framework',
 ]
 
@@ -67,7 +67,7 @@ DATABASES = {
     }
 }
 
-
+AUTH_USER_MODEL = 'reviews.User'
 # Password validation
 
 AUTH_PASSWORD_VALIDATORS = [
