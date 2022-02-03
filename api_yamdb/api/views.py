@@ -9,14 +9,15 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 
 from rest_framework import permissions, status
+from rest_framework.response import Response
 
 
 from users.models import CustomUser
 
 from .serializers import CategorySerializer, CustomUserSerializer, GenreSerializer, TitleSerializer, \
     ReviewSerializer, CommentSerializer, SignUpSerializer, GetTokenSerializer
-from ..reviews.models import Review, Title
-from ..users.models import CustomUser
+from reviews.models import Review, Title
+from users.models import CustomUser
 
 
 class CustomUserViewSet(viewsets.ModelViewSet):

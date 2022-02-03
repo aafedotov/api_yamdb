@@ -1,8 +1,8 @@
 from rest_framework import serializers
 from rest_framework.relations import SlugRelatedField
 
-from ..reviews.models import Category, Genre, Title, Review, Comment
-from ..users.models import CustomUser
+from reviews.models import Category, Genre, Title, Review, Comment
+from users.models import CustomUser
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
