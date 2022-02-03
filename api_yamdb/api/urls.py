@@ -3,7 +3,10 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (CategoryViewSet, CommentViewSet, GenreViewSet,
                     ReviewViewSet, TitleViewSet, CustomUserViewSet,
+                    signup, GetTokenApiView,
                     )
+
+app_name = 'api'
 
 router_v1 = DefaultRouter()
 router_v1.register('users', CustomUserViewSet)
@@ -18,6 +21,6 @@ router_v1.register(
 
 urlpatterns = [
     path('v1/', include(router_v1.urls)),
-    # path('v1/auth/email/', get_confirmation_code),
-    # path('v1/auth/token/', get_jwt_token),
+    path('v1/auth/signup/', signup),
+    path('v1/auth/token/', GetTokenApiView.as_view()),
 ]

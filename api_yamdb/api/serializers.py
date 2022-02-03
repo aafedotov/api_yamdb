@@ -56,3 +56,20 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ('id', 'author', 'text', 'pub_date')
         model = Comment
+
+
+class SignUpSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CustomUser
+        fields = ('username', 'email')
+
+
+class GetTokenSerializer(serializers.ModelSerializer):
+
+    username = serializers.CharField(max_length=256)
+    confirmation_code = serializers.CharField(max_length=256)
+
+    class Meta:
+        model = CustomUser
+        fields = ['username', 'confirmation_code']
