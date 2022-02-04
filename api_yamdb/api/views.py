@@ -91,10 +91,10 @@ class SignUpUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
                 user.is_active = False
                 user.save()
                 SignUpUserViewSet.send_confirmation_code(user, to_email)
-                return Response(serializer.data, status.HTTP_201_CREATED)
+                return Response(serializer.data, status.HTTP_200_OK)
             else:
                 SignUpUserViewSet.send_confirmation_code(user, to_email)
-                return Response(serializer.data, status.HTTP_202_ACCEPTED)
+                return Response(serializer.data, status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -116,6 +116,6 @@ class GetTokenApiView(APIView):
                     user.is_active = True
                     user.save()
                     data = {"token": str(access_token)}
-                    return Response(data, status=status.HTTP_201_CREATED)
+                    return Response(data, status=status.HTTP_200_OK)
             return Response('Пользователь не найден', status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
