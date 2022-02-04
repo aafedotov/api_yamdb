@@ -35,12 +35,27 @@ class Title(models.Model):
                                  help_text='Select a category for this work')
     genre = models.ManyToManyField(Genre,
                                    related_name='titles',
+                                   through='GenreTitle',
                                    help_text='Select a genre for this work')
     description = models.TextField(blank=True, null=True,
                                    help_text='Enter a brief description of the work')
 
     def __str__(self):
         return self.name
+
+
+class GenreTitle(models.Model):
+    """Модель для связи произведения и жанра."""
+    title = models.ForeignKey(
+        Title,
+        verbose_name='Название произведения',
+        on_delete=models.CASCADE
+    )
+    genre = models.ForeignKey(
+        Genre,
+        verbose_name='Жанр произведения',
+        on_delete=models.CASCADE
+    )
 
 
 class Review(models.Model):

@@ -1,0 +1,8 @@
+python manage.py import_data --model category --file static/data/category.csv
+python manage.py import_data --model genre --file static/data/genre.csv
+python manage.py import_data --model title --file static/data/titles.csv
+python manage.py import_data --model genre-title --file static/data/genre_title.csv
+python manage.py import_data --model custom-user --file static/data/users.csv
+python manage.py import_data --model review --file static/data/review.csv
+python manage.py import_data --model comment --file static/data/comments.csv
+
