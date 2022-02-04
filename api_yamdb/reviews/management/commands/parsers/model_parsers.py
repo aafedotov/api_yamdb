@@ -10,7 +10,7 @@ def csv_parser(file):
     """Выносим общий для всех парсеров функционал по csv."""
     file_path = os.path.join(settings.BASE_DIR, file)
     result = []
-    with open(file_path, newline='') as f:
+    with open(file_path, newline='', encoding='utf-8') as f:
         reader = csv.reader(f)
         next(reader)
         for row in reader:
@@ -60,16 +60,15 @@ def title_parser(file):
 
 def genre_title_parser(file):
     """Парсер для промежуточной модели тайтлов и жанров."""
-    print(GenreTitle.objects.get(id=10))
-    # rows = csv_parser(file)ß
-    # objs = [
-    #     GenreTitle(
-    #         title_id=row[1],
-    #         genre_id=row[2],
-    #     )
-    #     for row in rows
-    # ]
-    # GenreTitle.objects.bulk_create(objs)
+    rows = csv_parser(file)
+    objs = [
+        GenreTitle(
+            title_id=row[1],
+            genre_id=row[2],
+        )
+        for row in rows
+    ]
+    GenreTitle.objects.bulk_create(objs)
 
 
 def review_parser(file):
