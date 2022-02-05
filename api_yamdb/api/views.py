@@ -1,5 +1,9 @@
 from django.shortcuts import render, get_object_or_404
-from rest_framework import viewsets, mixins
+
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets, mixins, filters, permissions, status
+from rest_framework.pagination import PageNumberPagination
+
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import EmailMessage
 from django.contrib.auth.tokens import default_token_generator
@@ -10,32 +14,50 @@ from rest_framework.response import Response
 
 from .serializers import CategorySerializer, CustomUserSerializer, GenreSerializer, TitleSerializer, \
     ReviewSerializer, CommentSerializer, SignUpSerializer, GetTokenSerializer
-from reviews.models import Review, Title
+
+from reviews.models import Review, Title, Genre, Category, Comment
 from users.models import CustomUser
+from .filters import TitleFilter
 
 
 class CustomUserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
+    pagination_class = PageNumberPagination
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
+    search_fields = ('username',)  # поля модели, по которым разрешён поиск
+    lookup_field = 'username'
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
+    queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    pagination_class = PageNumberPagination
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
+    search_fields = ('name',)  # поля модели, по которым разрешён поиск
+    lookup_field = 'slug'
 
 
 class GenreViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
+    queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    pagination_class = PageNumberPagination
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
+    search_fields = ('name',)  # поля модели, по которым разрешён поиск
+    lookup_field = 'slug'
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
+    queryset = Title.objects.all()
     serializer_class = TitleSerializer
+    pagination_class = PageNumberPagination
+    filter_backends = DjangoFilterBackend
+    filterset_class = TitleFilter
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
+    pagination_class = PageNumberPagination
 
     def get_queryset(self):
         title_id = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
@@ -49,6 +71,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
+    pagination_class = PageNumberPagination
 
     def get_queryset(self):  # нужны не все комменты, а только связанные с конкретным отзывом с id=review_id
         review_id = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
@@ -60,13 +83,15 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user, review_id=review_id)
 
 
+
 class SignUpUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+
     """View-set: Регистрация пользователей."""
 
     serializer_class = SignUpSerializer
     permission_classes = [permissions.AllowAny]
     queryset = CustomUser.objects.all()
-
+    
     @staticmethod
     def send_confirmation_code(user, to_email):
         mail_subject = 'Email confirmation. YamDb.'
