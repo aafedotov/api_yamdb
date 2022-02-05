@@ -32,13 +32,33 @@ class GenreSerializer(serializers.ModelSerializer):
         model = Genre
 
 
-class TitleSerializer(serializers.ModelSerializer):
+class TitleReadOnlySerializer(serializers.ModelSerializer):  # для get
+    rating = serializers.IntegerField(
+        source='reviews__score__avg', read_only=True
+    )
+    genre = GenreSerializer(many=True, read_only=True)
+    category = CategorySerializer(read_only=True)
+
     class Meta:
         fields = (
             'id', 'name', 'year',
             'rating', 'description',
             'genre', 'category'
         )
+        model = Title
+
+
+class TitleSerializer(serializers.ModelSerializer):
+    genre = serializers.SlugRelatedField(
+        slug_field='slug', many=True, queryset=Genre.objects.all()
+    )
+    category = serializers.SlugRelatedField(
+        slug_field='slug', queryset=Category.objects.all()
+    )
+
+    class Meta:
+        fields = ('id', 'name', 'year',
+                  'description', 'genre', 'category')
         model = Title
 
 
@@ -50,8 +70,6 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
-
-
 
 
 class CommentSerializer(serializers.ModelSerializer):

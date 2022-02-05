@@ -14,7 +14,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 
 from .serializers import CategorySerializer, CustomUserSerializer, GenreSerializer, TitleSerializer, \
-    ReviewSerializer, CommentSerializer, SignUpSerializer, GetTokenSerializer
+    ReviewSerializer, CommentSerializer, SignUpSerializer, GetTokenSerializer, TitleReadOnlySerializer
 
 from reviews.models import Review, Title, Genre, Category, Comment
 from users.models import CustomUser
@@ -24,7 +24,7 @@ from .filters import TitleFilter
 class CustomUserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
-    pagination_class = PageNumberPagination
+    # pagination_class = PageNumberPagination
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
     search_fields = ('username',)  # поля модели, по которым разрешён поиск
     lookup_field = 'username'
@@ -52,8 +52,14 @@ class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
     pagination_class = PageNumberPagination
-    filter_backends = DjangoFilterBackend
-    filterset_class = TitleFilter
+    # filter_backends = DjangoFilterBackend
+    # filterset_class = TitleFilter
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return TitleReadOnlySerializer
+
+        return TitleSerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
