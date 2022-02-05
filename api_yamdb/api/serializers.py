@@ -81,10 +81,26 @@ class CommentSerializer(serializers.ModelSerializer):
         model = Comment
 
 
-class SignUpSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CustomUser
-        fields = ('username', 'email')
+class SignUpSerializer(serializers.Serializer):
+
+    username = serializers.CharField(max_length=30)
+    email = serializers.CharField(max_length=60)
+
+    def validate_username(self, value):
+        if value == 'me':
+            raise serializers.ValidationError(
+                'Использование username -me- запрещено.'
+            )
+        return value
+
+    def validate(self, data):
+        if CustomUser.objects.filter(username=data['username']).exists():
+            if (
+                    CustomUser.objects.get(username=data['username']).email
+            ) == data['email']:
+                return data
+            raise serializers.ValidationError('Неверный e-mail.')
+        return data
 
 
 class GetTokenSerializer(serializers.ModelSerializer):
