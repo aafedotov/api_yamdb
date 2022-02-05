@@ -14,7 +14,7 @@ from .validators import validate_username
 class CustomUserManager(BaseUserManager):
     """Описываем кастомную модель пользователя."""
 
-    def create_user(self, email, username, role, bio, password=None):
+    def create_user(self, email, username, role='', bio='', password=None):
         if not email:
             raise ValueError('e-mail обязателен для регистрации!')
         if not username:
@@ -23,8 +23,8 @@ class CustomUserManager(BaseUserManager):
         user = self.model(
             email=self.normalize_email(email),
             username=username,
-            role=role,
             bio=bio,
+            role=role
         )
 
         user.set_password(password)
