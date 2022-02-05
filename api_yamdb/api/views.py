@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, mixins, filters
+from rest_framework.pagination import PageNumberPagination
 
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import EmailMessage
@@ -23,6 +24,7 @@ from .filters import TitleFilter
 class CustomUserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
+    pagination_class = PageNumberPagination
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
     search_fields = ('username',)  # поля модели, по которым разрешён поиск
     lookup_field = 'username'
@@ -31,6 +33,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    pagination_class = PageNumberPagination
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
     search_fields = ('name',)  # поля модели, по которым разрешён поиск
     lookup_field = 'slug'
@@ -39,6 +42,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    pagination_class = PageNumberPagination
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
     search_fields = ('name',)  # поля модели, по которым разрешён поиск
     lookup_field = 'slug'
@@ -47,12 +51,14 @@ class GenreViewSet(viewsets.ModelViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
+    pagination_class = PageNumberPagination
     filter_backends = DjangoFilterBackend
     filterset_class = TitleFilter
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
+    pagination_class = PageNumberPagination
 
     def get_queryset(self):
         title_id = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
@@ -66,6 +72,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
+    pagination_class = PageNumberPagination
 
     def get_queryset(self):  # нужны не все комменты, а только связанные с конкретным отзывом с id=review_id
         review_id = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
