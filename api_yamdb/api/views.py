@@ -35,7 +35,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             obj = self.request.user
             self.check_object_permissions(self.request, obj)
             return obj
-        return super.get_object()
+        return super().get_object()
 
 
 class CategoryViewSet(viewsets.ModelViewSet):

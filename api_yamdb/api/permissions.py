@@ -10,8 +10,10 @@ class OnlyAdminPermission(permissions.BasePermission):
         return request.user.is_authenticated and (
                 request.user.role == 'admin' or
                 request.user.is_superuser or
-                view.kwargs['username'] == 'me'
+                view.kwargs.get('username') == 'me'
         )
 
     def has_object_permission(self, request, view, obj):
-        return request.user == obj
+        if view.kwargs.get('username') == 'me':
+            return request.user == obj
+        return True
