@@ -1,6 +1,7 @@
-
 from django.shortcuts import render, get_object_or_404
-from rest_framework import viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets, mixins, filters
+
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import EmailMessage
 from django.contrib.auth.tokens import default_token_generator
@@ -11,33 +12,43 @@ from rest_framework.decorators import api_view
 from rest_framework import permissions, status
 from rest_framework.response import Response
 
-
-from users.models import CustomUser
-
 from .serializers import CategorySerializer, CustomUserSerializer, GenreSerializer, TitleSerializer, \
     ReviewSerializer, CommentSerializer, SignUpSerializer, GetTokenSerializer
-from reviews.models import Review, Title
+
+from reviews.models import Review, Title, Genre, Category, Comment
 from users.models import CustomUser
+from .filters import TitleFilter
 
 
 class CustomUserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
+    search_fields = ('username',)  # поля модели, по которым разрешён поиск
+    lookup_field = 'username'
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
+    queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
+    search_fields = ('name',)  # поля модели, по которым разрешён поиск
+    lookup_field = 'slug'
 
 
 class GenreViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
+    queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
+    search_fields = ('name',)  # поля модели, по которым разрешён поиск
+    lookup_field = 'slug'
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
+    queryset = Title.objects.all()
     serializer_class = TitleSerializer
+    filter_backends = DjangoFilterBackend
+    filterset_class = TitleFilter
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -65,6 +76,15 @@ class CommentViewSet(viewsets.ModelViewSet):
         review_id = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
         serializer.save(author=self.request.user, review_id=review_id)
 
+
+class SignUpUserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
+    """View-set: Регистрация пользователей."""
+
+    serializer_class = SignUpSerializer
+    permission_classes = [permissions.AllowAny]
+    queryset = CustomUser.objects.all()
+
+
 @api_view(['POST'])
 def signup(request):
     """Регистрация пользователей."""
@@ -82,7 +102,7 @@ def signup(request):
             )
             to_email = serializer.initial_data['email']
             email = EmailMessage(
-                        mail_subject, message, to=[to_email]
+                mail_subject, message, to=[to_email]
             )
             email.send()
             return Response('Пожалуйста, проследуйте инструкциям на email')
@@ -127,8 +147,6 @@ class GetTokenApiView(APIView):
             return Response('Пользователь не найден', status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-
 # from rest_framework.response import Response
 # from rest_framework import generics, status
 # from rest_framework_simplejwt.tokens import RefreshToken
@@ -162,4 +180,3 @@ class GetTokenApiView(APIView):
 #         return Response(user_data, status=status.HTTP_201_CREATED)
 #
 #
-

@@ -1,4 +1,6 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from rest_framework.relations import SlugRelatedField
 
 from reviews.models import Category, Genre, Title, Review, Comment
@@ -43,10 +45,13 @@ class TitleSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     author = SlugRelatedField(slug_field='username',
                               read_only=True)  # переопред поле author д/отража не id автора, его username.
+    score = serializers.IntegerField(min_value=1, max_value=10)
 
     class Meta:
         fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
+
+
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -59,14 +64,12 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = CustomUser
         fields = ('username', 'email')
 
 
 class GetTokenSerializer(serializers.ModelSerializer):
-
     username = serializers.CharField(max_length=256)
     confirmation_code = serializers.CharField(max_length=256)
 
