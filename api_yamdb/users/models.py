@@ -1,43 +1,3 @@
-# from django.db import models
-# from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
-# from .validators import validate_username
-#
-#
-# class CustomUserManager(BaseUserManager):
-#     """Кастомный класс для создания новых пользователей."""
-#
-#     def create_user(self, email, username, password=None):
-#         """
-#         Создаем и сохраняем пользователя с заданным именем пользователя
-#          и адресом электронной почты
-#         """
-#         if not email:
-#             raise ValueError('Адрес электронной почты должен быть установлен')
-#         if not username:
-#             raise ValueError('Имя пользователя должно быть установлено')
-#
-#         user = self.model(
-#             email=self.normalize_email(email),  # предотвращение множественных регистраций
-#             username=self.model.normalize_username(username),
-#         )
-#         user.set_password(password)
-#         user.save(using=self._db)
-#         return user
-#
-#     def create_superuser(self, email, username, password):
-#         user = self.create_user(
-#             email=self.normalize_email(email),
-#             password=password,
-#             username=self.model.normalize_username(username),
-#         )
-#         user.is_admin = True
-#         user.is_staff = True
-#         user.is_superuser = True
-#         user.save(using=self._db)
-#         return user
-#
-#
-# class CustomUser(AbstractBaseUser):
 
 from datetime import datetime
 from datetime import timedelta
@@ -102,9 +62,9 @@ class CustomUser(AbstractBaseUser):
     )
     role = models.CharField(choices=ROLE_CHOICES,
                             default='user', max_length=64)
-    bio = models.TextField()
-    first_name = models.CharField(max_length=150)
-    last_name = models.CharField(max_length=150)
+    bio = models.TextField(blank=True)
+    first_name = models.CharField(max_length=150, blank=True)
+    last_name = models.CharField(max_length=150, blank=True)
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']

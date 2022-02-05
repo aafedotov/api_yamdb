@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from rest_framework import permissions, status
 from rest_framework.response import Response
 
-
+from .permissions import OnlyAdminPermission
 from .serializers import CategorySerializer, CustomUserSerializer, GenreSerializer, TitleSerializer, \
     ReviewSerializer, CommentSerializer, SignUpSerializer, GetTokenSerializer
 
@@ -24,9 +24,18 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
     pagination_class = PageNumberPagination
+    permission_classes = [OnlyAdminPermission]
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
     search_fields = ('username',)  # поля модели, по которым разрешён поиск
     lookup_field = 'username'
+
+    def get_object(self):
+
+        if self.kwargs['username'] == 'me':
+            obj = self.request.user
+            self.check_object_permissions(self.request, obj)
+            return obj
+        return super.get_object()
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
