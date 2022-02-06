@@ -83,16 +83,16 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = PageNumberPagination
+    permission_classes = [ReadOnlyOrAuthorOrAdmin]
 
-    def get_queryset(self):  # нужны не все комменты, а только связанные с конкретным отзывом с id=review_id
+    def get_queryset(self):
         review_id = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
-        new_queryset = review_id.comments.all()
-        return new_queryset
+        queryset = review_id.comments.all()
+        return queryset
 
-    def perform_create(self, serializer):  # нужно сохранять текущего юзера и конкретный отзыв
+    def perform_create(self, serializer):
         review_id = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
-        serializer.save(author=self.request.user, review_id=review_id)
-
+        serializer.save(author=self.request.user, review=review_id)
 
 
 class SignUpUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
