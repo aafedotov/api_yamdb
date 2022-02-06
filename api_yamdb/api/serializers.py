@@ -1,3 +1,5 @@
+
+
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -5,6 +7,7 @@ from rest_framework.relations import SlugRelatedField
 
 from reviews.models import Category, Genre, Title, Review, Comment
 from users.models import CustomUser
+from datetime import date
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -33,11 +36,20 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class TitleReadOnlySerializer(serializers.ModelSerializer):  # для get
+    """
+    Сериализатор вывода списка произведений и
+    получения определённого произведения.
+    """
     rating = serializers.IntegerField(
         source='reviews__score__avg', read_only=True
     )
-    genre = GenreSerializer(many=True, read_only=True)
-    category = CategorySerializer(read_only=True)
+    genre = serializers.SlugRelatedField(
+        slug_field='slug', many=True, queryset=Genre.objects.all()
+    )
+    category = serializers.SlugRelatedField(
+        slug_field='slug', queryset=Category.objects.all()
+    )
+    # name = serializers.ReadOnlyField(source='title_id')
 
     class Meta:
         fields = (
@@ -47,8 +59,16 @@ class TitleReadOnlySerializer(serializers.ModelSerializer):  # для get
         )
         model = Title
 
+    def validate_year(self, value):
+        year_now = date.today().year
+        if not (year_now < value):
+            raise serializers.ValidationError('Год выпуска не может быть больше текущего!')
+        repr(value)
+        return value
+
 
 class TitleSerializer(serializers.ModelSerializer):
+    """ Сериализатор создания, частичного обновления и удаления произведений."""
     genre = serializers.SlugRelatedField(
         slug_field='slug', many=True, queryset=Genre.objects.all()
     )
@@ -82,7 +102,6 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(serializers.Serializer):
-
     username = serializers.CharField(max_length=30)
     email = serializers.CharField(max_length=60)
 

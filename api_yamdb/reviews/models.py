@@ -2,6 +2,8 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
+from reviews.validators import validate_year
+
 
 class Category(models.Model):
     """Model representing categories (types) of works."""
@@ -27,7 +29,7 @@ class Title(models.Model):
     """Specific work to which they write reviews."""
     name = models.CharField(max_length=256,
                             verbose_name='Title')
-    year = models.IntegerField(help_text='Select the year of release of the work')
+    year = models.IntegerField(validators=[validate_year], help_text='Select the year of release of the work')
     category = models.ForeignKey(Category,
                                  related_name='titles',
                                  on_delete=models.SET_NULL,
@@ -59,7 +61,7 @@ class GenreTitle(models.Model):
 
 
 class Review(models.Model):
-    """User reviews for works."""
+    """Отзывы пользователей о произведениях."""
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE, related_name='reviews')
     text = models.TextField(verbose_name='Text')
