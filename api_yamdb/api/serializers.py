@@ -3,7 +3,9 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.relations import SlugRelatedField, PrimaryKeyRelatedField
-from rest_framework.validators import UniqueTogetherValidator
+
+from django.core.validators import validate_email
+from django.contrib.auth.validators import ASCIIUsernameValidator
 
 from reviews.models import Category, Genre, Title, Review, Comment
 from users.models import CustomUser
@@ -44,7 +46,8 @@ class TitleReadOnlySerializer(serializers.ModelSerializer):  # для get
     #     source='reviews__score__avg', read_only=True
     # )
 
-    rating = serializers.SerializerMethodField(read_only=True)  # создать новое поле(нет в мод Title),связанное методом get_rating
+    rating = serializers.SerializerMethodField(
+        read_only=True)  # создать новое поле(нет в мод Title),связанное методом get_rating
     genre = serializers.SlugRelatedField(
         slug_field='slug', many=True, queryset=Genre.objects.all()
     )
@@ -63,12 +66,14 @@ class TitleReadOnlySerializer(serializers.ModelSerializer):  # для get
         model = Title
 
     def get_rating(self, title):
-        return Review.objects.filter(title_id=title.id).annotate(Avg('reviews__score'))
+        return Review.objects.filter(title_id=title.id).annotate(
+            Avg('reviews__score'))
 
     def validate_year(self, value):
         year_now = date.today().year
         if value > year_now:
-            raise serializers.ValidationError('Год выпуска не может быть больше текущего!')
+            raise serializers.ValidationError(
+                'Год выпуска не может быть больше текущего!')
         repr(value)
         return value
 
@@ -117,7 +122,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
 
 
-
 class CommentSerializer(serializers.ModelSerializer):
     author = SlugRelatedField(
         slug_field='username',
@@ -131,14 +135,25 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(serializers.Serializer):
-    username = serializers.CharField(max_length=30)
-    email = serializers.CharField(max_length=60)
+    username = serializers.CharField(max_length=150)
+    email = serializers.CharField(max_length=254)
+
+    def validate_email(self, value):
+        try:
+            validate_email(value)
+        except ValidationError:
+            raise serializers.ValidationError('Некорректное поле email.')
+        return value
 
     def validate_username(self, value):
         if value == 'me':
             raise serializers.ValidationError(
                 'Использование username -me- запрещено.'
             )
+        try:
+            ASCIIUsernameValidator(value)
+        except ValidationError:
+            raise serializers.ValidationError('Некорректное поле username.')
         return value
 
     def validate(self, data):

@@ -31,12 +31,14 @@ class CustomUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, username, password):
+    def create_superuser(self, email, username, password, role='admin', bio=''):
         user = self.create_user(
             email=self.normalize_email(email),
             password=password,
             username=username,
         )
+        user.role = role
+        user.bio = bio
         user.is_admin = True
         user.is_staff = True
         user.is_superuser = True
@@ -46,9 +48,9 @@ class CustomUserManager(BaseUserManager):
 
 class CustomUser(AbstractBaseUser):
     """Описываем кастомную модель пользователя."""
-    email = models.EmailField(unique=True, max_length=60)
+    email = models.EmailField(unique=True, max_length=254)
     username = models.CharField(unique=True, validators=[validate_username],
-                                max_length=30)
+                                max_length=150)
     date_joined = models.DateTimeField(verbose_name='date joined',
                                        auto_now_add=True)
     last_login = models.DateTimeField(verbose_name='last login', auto_now=True)
@@ -73,19 +75,19 @@ class CustomUser(AbstractBaseUser):
 
     objects = CustomUserManager()
 
-    @property
-    def token(self):
-        """Получаем токен пользователя через свойство."""
-        return self._generate_jwt_token()
+    # @property
+    # def token(self):
+    #     """Получаем токен пользователя через свойство."""
+    #     return self._generate_jwt_token()
 
-    def _generate_jwt_token(self):
-        """Создаем JWT-token для пользователя."""
-        dt = datetime.now() + timedelta(days=60)
-        token = jwt.encode({
-            'id': self.pk,
-            'exp': int(dt.strftime('%s'))
-        }, settings.SECRET_KEY, algorithm='HS256')
-        return token.decode('utf-8')
+    # def _generate_jwt_token(self):
+    #     """Создаем JWT-token для пользователя."""
+    #     dt = datetime.now() + timedelta(days=60)
+    #     token = jwt.encode({
+    #         'id': self.pk,
+    #         'exp': int(dt.strftime('%s'))
+    #     }, settings.SECRET_KEY, algorithm='HS256')
+    #     return token.decode('utf-8')
 
     def __str__(self):
         return self.username
