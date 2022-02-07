@@ -1,3 +1,4 @@
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -6,6 +7,7 @@ from rest_framework.validators import UniqueTogetherValidator
 
 from reviews.models import Category, Genre, Title, Review, Comment
 from users.models import CustomUser
+from datetime import date
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -33,13 +35,56 @@ class GenreSerializer(serializers.ModelSerializer):
         model = Genre
 
 
-class TitleSerializer(serializers.ModelSerializer):
+class TitleReadOnlySerializer(serializers.ModelSerializer):  # для get
+    """
+    Сериализатор вывода списка произведений и
+    получения определённого произведения.
+    """
+    # rating = serializers.IntegerField(
+    #     source='reviews__score__avg', read_only=True
+    # )
+
+    rating = serializers.SerializerMethodField(read_only=True)  # создать новое поле(нет в мод Title),связанное методом get_rating
+    genre = serializers.SlugRelatedField(
+        slug_field='slug', many=True, queryset=Genre.objects.all()
+    )
+    category = serializers.SlugRelatedField(
+        slug_field='slug', queryset=Category.objects.all()
+    )
+
+    # name = serializers.ReadOnlyField(source='title_id')
+
     class Meta:
         fields = (
             'id', 'name', 'year',
             'rating', 'description',
             'genre', 'category'
         )
+        model = Title
+
+    def get_rating(self, title):
+        return Review.objects.filter(title_id=title.id).annotate(Avg('reviews__score'))
+
+    def validate_year(self, value):
+        year_now = date.today().year
+        if value > year_now:
+            raise serializers.ValidationError('Год выпуска не может быть больше текущего!')
+        repr(value)
+        return value
+
+
+class TitleSerializer(serializers.ModelSerializer):
+    """ Сериализатор создания, частичного обновления и удаления произведений."""
+    genre = serializers.SlugRelatedField(
+        slug_field='slug', many=True, queryset=Genre.objects.all()
+    )
+    category = serializers.SlugRelatedField(
+        slug_field='slug', queryset=Category.objects.all()
+    )
+
+    class Meta:
+        fields = ('id', 'name', 'year',
+                  'description', 'genre', 'category')
         model = Title
 
 
@@ -86,7 +131,6 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(serializers.Serializer):
-
     username = serializers.CharField(max_length=30)
     email = serializers.CharField(max_length=60)
 

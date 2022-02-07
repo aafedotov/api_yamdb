@@ -1,8 +1,12 @@
+from datetime import date
+
+from django.db.models import Avg
 from django.shortcuts import render, get_object_or_404
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, mixins, filters, permissions, status
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import EmailMessage
@@ -11,13 +15,26 @@ from rest_framework.views import APIView
 from rest_framework import permissions, status
 from rest_framework.response import Response
 
-from .permissions import OnlyAdminPermission, ReadOnlyOrAuthorOrAdmin
+
+from .permissions import OnlyAdminPermission, IsAdminOrReadOnly, ReadOnlyOrAuthorOrAdmin
+
 from .serializers import CategorySerializer, CustomUserSerializer, GenreSerializer, TitleSerializer, \
-    ReviewSerializer, CommentSerializer, SignUpSerializer, GetTokenSerializer
+    ReviewSerializer, CommentSerializer, SignUpSerializer, GetTokenSerializer, TitleReadOnlySerializer
 
 from reviews.models import Review, Title, Genre, Category, Comment
 from users.models import CustomUser
 from .filters import TitleFilter
+
+
+class CreateRetrieveDestroyListViewSet(mixins.CreateModelMixin,
+                                       mixins.RetrieveModelMixin,
+                                       mixins.DestroyModelMixin,
+                                       mixins.ListModelMixin,
+                                       viewsets.GenericViewSet):
+    """
+    Набор представлений, обеспечивающий действия `create` и `list`.
+    """
+    pass
 
 
 class CustomUserViewSet(viewsets.ModelViewSet):
@@ -30,7 +47,6 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     lookup_field = 'username'
 
     def get_object(self):
-
         if self.kwargs['username'] == 'me':
             obj = self.request.user
             self.check_object_permissions(self.request, obj)
@@ -38,18 +54,20 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         return super().get_object()
 
 
-class CategoryViewSet(viewsets.ModelViewSet):
+class CategoryViewSet(CreateRetrieveDestroyListViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = [IsAdminOrReadOnly]
     pagination_class = PageNumberPagination
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
     search_fields = ('name',)  # поля модели, по которым разрешён поиск
     lookup_field = 'slug'
 
 
-class GenreViewSet(viewsets.ModelViewSet):
+class GenreViewSet(CreateRetrieveDestroyListViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    permission_classes = [IsAdminOrReadOnly]
     pagination_class = PageNumberPagination
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
     search_fields = ('name',)  # поля модели, по которым разрешён поиск
@@ -57,11 +75,21 @@ class GenreViewSet(viewsets.ModelViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
+    # queryset = Title.objects.annotate(Avg('reviews__score'))
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
     pagination_class = PageNumberPagination
-    filter_backends = DjangoFilterBackend
-    filterset_class = TitleFilter
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = (DjangoFilterBackend,)
+    filterset_fields = ('category', 'genre', 'year', 'name')
+    # filter_backends = DjangoFilterBackend
+    # filterset_class = TitleFilter
+
+    def get_serializer_class(self):
+        if self.action == 'list' or 'retrieve':
+            return TitleReadOnlySerializer
+
+        return TitleSerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -94,15 +122,14 @@ class CommentViewSet(viewsets.ModelViewSet):
         review_id = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
         serializer.save(author=self.request.user, review=review_id)
 
-
+        
 class SignUpUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
-
     """View-set: Регистрация пользователей."""
 
     serializer_class = SignUpSerializer
     permission_classes = [permissions.AllowAny]
     queryset = CustomUser.objects.all()
-    
+
     @staticmethod
     def send_confirmation_code(user, to_email):
         mail_subject = 'Email confirmation. YamDb.'
