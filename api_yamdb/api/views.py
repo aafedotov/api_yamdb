@@ -143,6 +143,22 @@ class SignUpUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         )
         email.send()
 
+    def create(self, request, *args, **kwargs):
+        """Проверяем уникальность email, меняем код 201 на 200."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        if CustomUser.objects.filter(email=email).exists():
+            return Response(
+                'Такой email уже зарегистрирован.',
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_200_OK, headers=headers
+        )
+
     def perform_create(self, serializer):
         if serializer.is_valid():
             user, created = CustomUser.objects.get_or_create(
@@ -180,5 +196,10 @@ class GetTokenApiView(APIView):
                     user.save()
                     data = {"token": str(access_token)}
                     return Response(data, status=status.HTTP_200_OK)
-            return Response('Пользователь не найден', status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    'Неверный e-mail.', status=status.HTTP_400_BAD_REQUEST
+                )
+            return Response(
+                'Пользователь не найден.', status=status.HTTP_404_NOT_FOUND
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
