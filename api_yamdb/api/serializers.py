@@ -2,7 +2,8 @@ from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework.relations import SlugRelatedField
+from rest_framework.relations import SlugRelatedField, PrimaryKeyRelatedField
+from rest_framework.validators import UniqueTogetherValidator
 
 from reviews.models import Category, Genre, Title, Review, Comment
 from users.models import CustomUser
@@ -89,17 +90,40 @@ class TitleSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = SlugRelatedField(slug_field='username',
-                              read_only=True)  # переопред поле author д/отража не id автора, его username.
+                              default=serializers.CurrentUserDefault(),
+                              read_only=True)
     score = serializers.IntegerField(min_value=1, max_value=10)
+
+    def validate(self, data):
+        """Проверяем, оставлял ли пользователь отзыв к произведению ранее."""
+        view = self.context['view']
+        request = self.context['request']
+        title_id = view.kwargs.get('title_id')
+        author = request.user
+        if (
+                Review.objects.filter(
+                    author=author,
+                    title__id=title_id).exists()
+                and
+                request.method != 'PATCH'
+        ):
+            raise serializers.ValidationError(
+                'Вы уже оставляли отзыв к этому произведению.'
+            )
+        return data
 
     class Meta:
         fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
 
 
+
 class CommentSerializer(serializers.ModelSerializer):
-    author = SlugRelatedField(slug_field='username',
-                              read_only=True)  # переопред поле author д/отража не id автора, его username.
+    author = SlugRelatedField(
+        slug_field='username',
+        read_only=True,
+        default=serializers.CurrentUserDefault()
+    )
 
     class Meta:
         fields = ('id', 'author', 'text', 'pub_date')

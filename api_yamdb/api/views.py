@@ -15,7 +15,9 @@ from rest_framework.views import APIView
 from rest_framework import permissions, status
 from rest_framework.response import Response
 
-from .permissions import OnlyAdminPermission, IsAdminOrReadOnly
+
+from .permissions import OnlyAdminPermission, IsAdminOrReadOnly, ReadOnlyOrAuthorOrAdmin
+
 from .serializers import CategorySerializer, CustomUserSerializer, GenreSerializer, TitleSerializer, \
     ReviewSerializer, CommentSerializer, SignUpSerializer, GetTokenSerializer, TitleReadOnlySerializer
 
@@ -93,31 +95,34 @@ class TitleViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     pagination_class = PageNumberPagination
+    permission_classes = [ReadOnlyOrAuthorOrAdmin]
 
     def get_queryset(self):
-        title_id = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
-        new_queryset = title_id.reviews.all()
-        return new_queryset
+        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
+        queryset = title.reviews.all()
+        return queryset
 
-    def perform_create(self, serializer):  # нужно сохранять текущего юзера и конкретный отзыв
-        title_id = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
-        serializer.save(author=self.request.user, review_id=title_id)
+    def perform_create(self, serializer):
+        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
+        author = self.request.user
+        serializer.save(author=author, title=title)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = PageNumberPagination
+    permission_classes = [ReadOnlyOrAuthorOrAdmin]
 
-    def get_queryset(self):  # нужны не все комменты, а только связанные с конкретным отзывом с id=review_id
+    def get_queryset(self):
         review_id = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
-        new_queryset = review_id.comments.all()
-        return new_queryset
+        queryset = review_id.comments.all()
+        return queryset
 
-    def perform_create(self, serializer):  # нужно сохранять текущего юзера и конкретный отзыв
+    def perform_create(self, serializer):
         review_id = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
-        serializer.save(author=self.request.user, review_id=review_id)
+        serializer.save(author=self.request.user, review=review_id)
 
-
+        
 class SignUpUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     """View-set: Регистрация пользователей."""
 
