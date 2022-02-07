@@ -7,12 +7,11 @@ class OnlyAdminPermission(permissions.BasePermission):
     message = 'Доступ к данной операции разрешен только администраторам.'
 
     def has_permission(self, request, view):
-        return (
-                request.user.is_authenticated
+        return (request.user.is_authenticated
                 and (request.user.role == 'admin'
                      or request.user.is_superuser
                      or view.kwargs.get('username') == 'me')
-        )
+                )
 
     def has_object_permission(self, request, view, obj):
         if view.kwargs.get('username') == 'me':
@@ -31,11 +30,10 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         if request.method == 'GET':
             return True
         else:
-            return (
-                    request.user.is_authenticated
+            return (request.user.is_authenticated
                     and (request.user.role == 'admin'
                          or request.user.is_superuser)
-            )
+                    )
 
 
 class ReadOnlyOrAuthorOrAdmin(permissions.BasePermission):
