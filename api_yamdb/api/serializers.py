@@ -1,5 +1,4 @@
-
-
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -40,15 +39,18 @@ class TitleReadOnlySerializer(serializers.ModelSerializer):  # для get
     Сериализатор вывода списка произведений и
     получения определённого произведения.
     """
-    rating = serializers.IntegerField(
-        source='reviews__score__avg', read_only=True
-    )
+    # rating = serializers.IntegerField(
+    #     source='reviews__score__avg', read_only=True
+    # )
+
+    rating = serializers.SerializerMethodField(read_only=True)  # создать новое поле(нет в мод Title),связанное методом get_rating
     genre = serializers.SlugRelatedField(
         slug_field='slug', many=True, queryset=Genre.objects.all()
     )
     category = serializers.SlugRelatedField(
         slug_field='slug', queryset=Category.objects.all()
     )
+
     # name = serializers.ReadOnlyField(source='title_id')
 
     class Meta:
@@ -58,6 +60,9 @@ class TitleReadOnlySerializer(serializers.ModelSerializer):  # для get
             'genre', 'category'
         )
         model = Title
+
+    def get_rating(self, title):
+        return Review.objects.filter(title_id=title.id).annotate(Avg('reviews__score'))
 
     def validate_year(self, value):
         year_now = date.today().year
