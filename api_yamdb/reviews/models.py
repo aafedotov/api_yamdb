@@ -45,6 +45,9 @@ class Title(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        ordering = ('-name',)
+
 
 class GenreTitle(models.Model):
     """Модель для связи произведения и жанра."""
@@ -79,6 +82,7 @@ class Review(models.Model):
 
     class Meta:
         ordering = ('-pub_date',)
+        unique_together = ('author', 'title')
 
     def __str__(self):
         return self.text

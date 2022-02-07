@@ -37,9 +37,10 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ('name', 'slug')
         model = Category
 
-    # def validate(self, data):
-    #     if not data['name'] or not data['slug']:
-    #         raise CustomValidation
+    def validate_slug(self, value):
+        if Category.objects.filter(slug=value).exists():
+            raise serializers.ValidationError('Slug не уникален.')
+        return value
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -54,17 +55,18 @@ class TitleReadOnlySerializer(serializers.ModelSerializer):  # для get
     получения определённого произведения.
     """
     rating = serializers.IntegerField(
-        source='reviews__score__avg', read_only=True
+         source='reviews__score__avg', read_only=True
     )
-    rating = serializers.SerializerMethodField(
-        read_only=True)  # создать новое поле(нет в мод Title),связанное методом get_rating
-    genre = serializers.SlugRelatedField(
-        slug_field='slug', many=True, queryset=Genre.objects.all()
-    )
-    category = serializers.SlugRelatedField(
-        slug_field='slug', queryset=Category.objects.all()
-    )
-
+    # rating = serializers.SerializerMethodField(
+    #     read_only=True)  # создать новое поле(нет в мод Title),связанное методом get_rating
+    # genre = serializers.SlugRelatedField(
+    #     slug_field='slug', many=True, queryset=Genre.objects.all()
+    # )
+    # category = serializers.SlugRelatedField(
+    #     slug_field='slug', queryset=Category.objects.all()
+    # )
+    genre = GenreSerializer(many=True)
+    category = CategorySerializer()
 
     class Meta:
         fields = (
@@ -74,9 +76,9 @@ class TitleReadOnlySerializer(serializers.ModelSerializer):  # для get
         )
         model = Title
         
-    def get_rating(self, title):
-        return Review.objects.filter(title_id=title.id).annotate(
-            Avg('reviews__score'))
+    # def get_rating(self, obj):
+    #     return obj.reviews.all().annotate(Avg('score'))
+
 
     def validate_year(self, value):
         year_now = date.today().year
@@ -87,7 +89,7 @@ class TitleReadOnlySerializer(serializers.ModelSerializer):  # для get
         return value
 
 
-class TitleSerializer(serializers.ModelSerializer):
+class TitleSerializer(TitleReadOnlySerializer):
     """ Сериализатор создания, частичного обновления и удаления произведений."""
     genre = serializers.SlugRelatedField(
         slug_field='slug', many=True, queryset=Genre.objects.all()
@@ -95,6 +97,8 @@ class TitleSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
         slug_field='slug', queryset=Category.objects.all()
     )
+    # genre = GenreSerializer(many=True)
+    # category = CategorySerializer()
 
     class Meta:
         fields = ('id', 'name', 'year',
@@ -127,7 +131,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         return data
 
     class Meta:
-        fields = ('text', 'author', 'score', 'pub_date')
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
 
 

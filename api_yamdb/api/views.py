@@ -26,8 +26,7 @@ from users.models import CustomUser
 from .filters import TitleFilter
 
 
-class CreateRetrieveDestroyListViewSet(mixins.CreateModelMixin,
-                                       mixins.RetrieveModelMixin,
+class CreateDestroyListViewSet(mixins.CreateModelMixin,
                                        mixins.DestroyModelMixin,
                                        mixins.ListModelMixin,
                                        viewsets.GenericViewSet):
@@ -76,7 +75,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class CategoryViewSet(CreateRetrieveDestroyListViewSet):
+class CategoryViewSet(CreateDestroyListViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [IsAdminOrReadOnly]
@@ -85,22 +84,8 @@ class CategoryViewSet(CreateRetrieveDestroyListViewSet):
     search_fields = ('name',)  # поля модели, по которым разрешён поиск
     lookup_field = 'slug'
 
-    # def create(self, request, *args, **kwargs):
-    #     if not request.data['slug'] or not request.data['name']:
-    #         return Response('Невалидные данные', status=status.HTTP_400_BAD_REQUEST)
-    #     serializer = self.get_serializer(data=request.data)
-    #     serializer.is_valid(raise_exception=True)
-    #     self.perform_create(serializer)
-    #     headers = self.get_success_headers(serializer.data)
-    #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
-    # def perform_create(self, serializer):
-    #     if serializer.is_valid:
-    #         serializer.save()
-    #     return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
-
-
-class GenreViewSet(CreateRetrieveDestroyListViewSet):
+class GenreViewSet(CreateDestroyListViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     permission_classes = [IsAdminOrReadOnly]
@@ -111,7 +96,7 @@ class GenreViewSet(CreateRetrieveDestroyListViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.annotate(Avg('reviews__score'))
+    queryset = Title.objects.all().annotate(Avg('reviews__score'))
     # queryset = Title.objects.all()
     serializer_class = TitleSerializer
     pagination_class = PageNumberPagination
@@ -119,13 +104,12 @@ class TitleViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filterset_fields = ('category', 'genre', 'year', 'name')
     # filter_backends = DjangoFilterBackend
-    # filterset_class = TitleFilter
+    filterset_class = TitleFilter
 
     def get_serializer_class(self):
-        if self.action == 'list' or 'retrieve':
-            return TitleReadOnlySerializer
-
-        return TitleSerializer
+        if self.action == 'create' or self.action == 'partial_update':
+            return TitleSerializer
+        return TitleReadOnlySerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
