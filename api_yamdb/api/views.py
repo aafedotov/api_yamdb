@@ -53,6 +53,28 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             return obj
         return super().get_object()
 
+    def perform_update(self, serializer):
+        """Запрещаем менять пользователю свою роль."""
+        if (
+                self.kwargs['username'] == 'me'
+                and
+                self.request.user.role == 'user'
+                and
+                serializer.data['role']
+        ):
+            return Response(
+                'Нельзя изменить роль пользователя.',
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        serializer.save()
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        if self.kwargs['username'] == 'me':
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class CategoryViewSet(CreateRetrieveDestroyListViewSet):
     queryset = Category.objects.all()
@@ -62,6 +84,20 @@ class CategoryViewSet(CreateRetrieveDestroyListViewSet):
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
     search_fields = ('name',)  # поля модели, по которым разрешён поиск
     lookup_field = 'slug'
+
+    # def create(self, request, *args, **kwargs):
+    #     if not request.data['slug'] or not request.data['name']:
+    #         return Response('Невалидные данные', status=status.HTTP_400_BAD_REQUEST)
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     self.perform_create(serializer)
+    #     headers = self.get_success_headers(serializer.data)
+    #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    # def perform_create(self, serializer):
+    #     if serializer.is_valid:
+    #         serializer.save()
+    #     return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
 
 
 class GenreViewSet(CreateRetrieveDestroyListViewSet):

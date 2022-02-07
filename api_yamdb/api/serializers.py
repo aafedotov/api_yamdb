@@ -1,7 +1,7 @@
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
-from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError, APIException
 from rest_framework.relations import SlugRelatedField, PrimaryKeyRelatedField
 
 from django.core.validators import validate_email
@@ -12,7 +12,14 @@ from users.models import CustomUser
 from datetime import date
 
 
+# class CustomValidation(APIException):
+#     status_code = status.HTTP_400_BAD_REQUEST
+#     default_detail = 'HTTP_400_BAD_REQUEST'
+
+
+
 class CustomUserSerializer(serializers.ModelSerializer):
+
     class Meta:
         fields = [
             'username',
@@ -29,6 +36,10 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         fields = ('name', 'slug')
         model = Category
+
+    # def validate(self, data):
+    #     if not data['name'] or not data['slug']:
+    #         raise CustomValidation
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -116,7 +127,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         return data
 
     class Meta:
-        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        fields = ('text', 'author', 'score', 'pub_date')
         model = Review
 
 
