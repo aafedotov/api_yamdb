@@ -29,7 +29,10 @@ class Title(models.Model):
     """Specific work to which they write reviews."""
     name = models.CharField(max_length=256,
                             verbose_name='Title')
-    year = models.IntegerField(validators=[validate_year], help_text='Select the year of release of the work')
+    year = models.IntegerField(
+        validators=[validate_year],
+        help_text='Select the year of release of the work'
+    )
     category = models.ForeignKey(Category,
                                  related_name='titles',
                                  on_delete=models.SET_NULL,
@@ -39,8 +42,10 @@ class Title(models.Model):
                                    related_name='titles',
                                    through='GenreTitle',
                                    help_text='Select a genre for this work')
-    description = models.TextField(blank=True, null=True,
-                                   help_text='Enter a brief description of the work')
+    description = models.TextField(
+        blank=True, null=True,
+        help_text='Enter a brief description of the work'
+    )
 
     def __str__(self):
         return self.name

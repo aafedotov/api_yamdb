@@ -5,6 +5,7 @@ from reviews.models import Title
 
 
 class TitleFilter(filters.FilterSet):
+    """Кастомный фильтр для модели Title."""
     genre = django_filters.CharFilter(
         field_name='genre__slug'
     )

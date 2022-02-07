@@ -1,51 +1,41 @@
-from datetime import date
-
-from django.db.models import Avg
-from django.shortcuts import render, get_object_or_404
-
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, mixins, filters, permissions, status
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
-
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.core.mail import EmailMessage
 from django.contrib.auth.tokens import default_token_generator
-from rest_framework.views import APIView
+from django.core.mail import EmailMessage
+from django.db.models import Avg
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status
+from rest_framework import viewsets, mixins, filters
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-
-
-from .permissions import OnlyAdminPermission, IsAdminOrReadOnly, ReadOnlyOrAuthorOrAdmin
-
-from .serializers import CategorySerializer, CustomUserSerializer, GenreSerializer, TitleSerializer, \
-    ReviewSerializer, CommentSerializer, SignUpSerializer, GetTokenSerializer, TitleReadOnlySerializer
-
-from reviews.models import Review, Title, Genre, Category, Comment
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from reviews.models import Review, Title, Genre, Category
 from users.models import CustomUser
+
 from .filters import TitleFilter
-
-
-class CreateDestroyListViewSet(mixins.CreateModelMixin,
-                                       mixins.DestroyModelMixin,
-                                       mixins.ListModelMixin,
-                                       viewsets.GenericViewSet):
-    """
-    Набор представлений, обеспечивающий действия 'create','list','.
-    """
-    pass
+from .mixins import CreateDestroyListViewSet
+from .permissions import (
+    OnlyAdminPermission, IsAdminOrReadOnly, ReadOnlyOrAuthorOrAdmin
+)
+from .serializers import (
+    CategorySerializer, CustomUserSerializer, GenreSerializer, TitleSerializer,
+    ReviewSerializer, CommentSerializer, SignUpSerializer, GetTokenSerializer,
+    TitleReadOnlySerializer
+)
 
 
 class CustomUserViewSet(viewsets.ModelViewSet):
+    """View-set для эндпоинта users."""
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
     pagination_class = PageNumberPagination
     permission_classes = [OnlyAdminPermission]
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
-    search_fields = ('username',)  # поля модели, по которым разрешён поиск
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
+    search_fields = ('username',)
     lookup_field = 'username'
 
     def get_object(self):
+        """Получаем себя при обращении на users/me."""
         if self.kwargs['username'] == 'me':
             obj = self.request.user
             self.check_object_permissions(self.request, obj)
@@ -68,6 +58,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     def destroy(self, request, *args, **kwargs):
+        """Переопределяем статус-код, требования автотестов."""
         instance = self.get_object()
         self.perform_destroy(instance)
         if self.kwargs['username'] == 'me':
@@ -76,69 +67,77 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
 
 class CategoryViewSet(CreateDestroyListViewSet):
+    """View-set для эндпоинта categories."""
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [IsAdminOrReadOnly]
     pagination_class = PageNumberPagination
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
-    search_fields = ('name',)  # поля модели, по которым разрешён поиск
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
+    search_fields = ('name',)
     lookup_field = 'slug'
 
 
 class GenreViewSet(CreateDestroyListViewSet):
+    """View-set для эндпоинта genre."""
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     permission_classes = [IsAdminOrReadOnly]
     pagination_class = PageNumberPagination
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter)  # Поисковый бэкенд
-    search_fields = ('name',)  # поля модели, по которым разрешён поиск
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
+    search_fields = ('name',)
     lookup_field = 'slug'
 
 
 class TitleViewSet(viewsets.ModelViewSet):
+    """View-set для эндпоинта title."""
     queryset = Title.objects.all().annotate(Avg('reviews__score'))
-    # queryset = Title.objects.all()
     serializer_class = TitleSerializer
     pagination_class = PageNumberPagination
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = (DjangoFilterBackend,)
     filterset_fields = ('category', 'genre', 'year', 'name')
-    # filter_backends = DjangoFilterBackend
     filterset_class = TitleFilter
 
     def get_serializer_class(self):
+        """Определяем сериализаторы в зависимости от реквест методов."""
         if self.action == 'create' or self.action == 'partial_update':
             return TitleSerializer
         return TitleReadOnlySerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
+    """View-set для эндпоинта reviews."""
     serializer_class = ReviewSerializer
     pagination_class = PageNumberPagination
     permission_classes = [ReadOnlyOrAuthorOrAdmin]
 
     def get_queryset(self):
+        """Получаем отзывы на выбранный тайтл."""
         title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
         queryset = title.reviews.all()
         return queryset
 
     def perform_create(self, serializer):
+        """Переопределяем сохранение тайтла и автора."""
         title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
         author = self.request.user
         serializer.save(author=author, title=title)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
+    """View-set для эндпоинта comments."""
     serializer_class = CommentSerializer
     pagination_class = PageNumberPagination
     permission_classes = [ReadOnlyOrAuthorOrAdmin]
 
     def get_queryset(self):
+        """Получаем комменты к нужному отзыву."""
         review_id = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
         queryset = review_id.comments.all()
         return queryset
 
     def perform_create(self, serializer):
+        """Переопределяем сохранение отзыва и автора."""
         review_id = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
         serializer.save(author=self.request.user, review=review_id)
 
@@ -152,6 +151,7 @@ class SignUpUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
     @staticmethod
     def send_confirmation_code(user, to_email):
+        """Метод для отправки email с кодом подтверждения."""
         mail_subject = 'Email confirmation. YamDb.'
         token = default_token_generator.make_token(user)
         message = (
@@ -180,6 +180,7 @@ class SignUpUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         )
 
     def perform_create(self, serializer):
+        """Сохраняем юзера, направляем код подтверждения на почту."""
         if serializer.is_valid():
             user, created = CustomUser.objects.get_or_create(
                 username=serializer.validated_data['username'],
@@ -202,15 +203,16 @@ class GetTokenApiView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-
+        """Генерим JWT-токен."""
         serializer = GetTokenSerializer(data=request.data)
-
         if serializer.is_valid():
             username = serializer.validated_data['username']
             confirmation_code = serializer.validated_data['confirmation_code']
             if CustomUser.objects.filter(username=username).exists():
                 user = CustomUser.objects.get(username=username)
-                if default_token_generator.check_token(user, confirmation_code):
+                if default_token_generator.check_token(
+                        user, confirmation_code
+                ):
                     access_token = RefreshToken.for_user(user).access_token
                     user.is_active = True
                     user.save()

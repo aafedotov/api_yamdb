@@ -1,18 +1,16 @@
 import os
 from datetime import timedelta
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'p&l%385148kslhtyn^##a1)ilz@4zqj=rq&agdol^##zgl9(vs'
 
-# SECURITY WARNING: don't run with debug turned on in production!
+
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-# Application definition
+AUTH_USER_MODEL = 'users.CustomUser'
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -59,17 +57,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'api_yamdb.wsgi.application'
 
-# Database
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
-
-AUTH_USER_MODEL = 'users.CustomUser'
-# Password validation
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -88,7 +81,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        # 'rest_framework.permissions.IsAuthenticatedOrReadOnly',
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -108,17 +100,8 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-AUTH_USER_MODEL = 'users.CustomUser'
-
-# EMAIL_USE_TLS = True
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_PORT = 587
-# EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
-# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'confirmation-emails')
-
-# Internationalization
 
 LANGUAGE_CODE = 'en-us'
 
@@ -129,8 +112,6 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
-
-# Static files (CSS, JavaScript, Images)
 
 STATIC_URL = '/static/'
 
