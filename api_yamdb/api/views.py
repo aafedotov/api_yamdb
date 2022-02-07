@@ -46,11 +46,8 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         """Запрещаем менять пользователю свою роль."""
         if (
                 self.kwargs['username'] == 'me'
-                and
-                self.request.user.role == 'user'
-                and
-                serializer.data['role']
-        ):
+                and self.request.user.role == 'user'
+                and serializer.data['role']):
             return Response(
                 'Нельзя изменить роль пользователя.',
                 status=status.HTTP_400_BAD_REQUEST
@@ -141,7 +138,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         review_id = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
         serializer.save(author=self.request.user, review=review_id)
 
-        
+
 class SignUpUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     """View-set: Регистрация пользователей."""
 
@@ -154,13 +151,9 @@ class SignUpUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         """Метод для отправки email с кодом подтверждения."""
         mail_subject = 'Email confirmation. YamDb.'
         token = default_token_generator.make_token(user)
-        message = (
-                'Для завершения регистрации подтвердите Ваш email.' +
-                f'\nToken:{token}'
-        )
-        email = EmailMessage(
-            mail_subject, message, to=[to_email]
-        )
+        message = ('Для завершения регистрации подтвердите Ваш email.'
+                   f'\nToken:{token}')
+        email = EmailMessage(mail_subject, message, to=[to_email])
         email.send()
 
     def create(self, request, *args, **kwargs):

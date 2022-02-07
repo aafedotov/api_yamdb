@@ -48,9 +48,8 @@ class TitleReadOnlySerializer(serializers.ModelSerializer):
     Сериализатор вывода списка произведений и
     получения определённого произведения.
     """
-    rating = serializers.IntegerField(
-         source='reviews__score__avg', read_only=True
-    )
+    rating = serializers.IntegerField(source='reviews__score__avg',
+                                      read_only=True)
     genre = GenreSerializer(many=True)
     category = CategorySerializer()
 
@@ -105,8 +104,7 @@ class ReviewSerializer(serializers.ModelSerializer):
                     author=author,
                     title__id=title_id).exists()
                 and
-                request.method != 'PATCH'
-        ):
+                request.method != 'PATCH'):
             raise serializers.ValidationError(
                 'Вы уже оставляли отзыв к этому произведению.'
             )
