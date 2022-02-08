@@ -6,6 +6,6 @@ class CreateDestroyListViewSet(mixins.CreateModelMixin,
                                mixins.ListModelMixin,
                                viewsets.GenericViewSet):
     """
-    Набор представлений, обеспечивающий действия 'create','list','.
+    Набор представлений, обеспечивающий действия 'create','list','delete'.
     """
     pass

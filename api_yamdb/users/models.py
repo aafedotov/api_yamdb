@@ -43,16 +43,26 @@ class CustomUserManager(BaseUserManager):
 
 class CustomUser(AbstractBaseUser):
     """Описываем кастомную модель пользователя."""
-    email = models.EmailField(unique=True, max_length=254)
-    username = models.CharField(unique=True, validators=[validate_username],
-                                max_length=150)
-    date_joined = models.DateTimeField(verbose_name='date joined',
+    email = models.EmailField(unique=True, max_length=254,
+                              verbose_name='email',
+                              verbose_name_plural='emails')
+    username = models.CharField(unique=True,
+                                validators=[validate_username],
+                                max_length=150,
+                                verbose_name='имя пользователя',
+                                verbose_name_plural='имена пользователей')
+    date_joined = models.DateTimeField(verbose_name='дата создания',
+                                       verbose_name_plural='даты создания',
                                        auto_now_add=True)
-    last_login = models.DateTimeField(verbose_name='last login', auto_now=True)
-    is_admin = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
+    last_login = models.DateTimeField(verbose_name='последний вход в систему',
+                                      auto_now=True)
+    is_admin = models.BooleanField(default=False,
+                                   verbose_name='Администратор')
+    is_active = models.BooleanField(default=True,
+                                    verbose_name='активный')
     is_staff = models.BooleanField(default=False)
-    is_superuser = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False,
+                                       verbose_name='Суперпользователь')
 
     ROLE_CHOICES = (
         ('user', 'Аутентифицированный пользователь'),
@@ -60,10 +70,11 @@ class CustomUser(AbstractBaseUser):
         ('admin', 'Администратор')
     )
     role = models.CharField(choices=ROLE_CHOICES,
-                            default='user', max_length=64)
-    bio = models.TextField(blank=True)
-    first_name = models.CharField(max_length=150, blank=True)
-    last_name = models.CharField(max_length=150, blank=True)
+                            default='user', max_length=64,
+                            verbose_name='role', verbose_name_plural='roles',)
+    bio = models.TextField(blank=True, verbose_name='о себе')
+    first_name = models.CharField(max_length=150, blank=True, verbose_name='имя')
+    last_name = models.CharField(max_length=150, blank=True, verbose_name='фамилия')
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']

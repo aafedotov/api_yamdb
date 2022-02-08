@@ -67,7 +67,6 @@ class TitleReadOnlySerializer(serializers.ModelSerializer):
         if value > year_now:
             raise serializers.ValidationError(
                 'Год выпуска не может быть больше текущего!')
-        repr(value)
         return value
 
 
