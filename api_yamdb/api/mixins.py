@@ -15,11 +15,3 @@ class CreateDestroyListViewSet(mixins.CreateModelMixin,
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     search_fields = ('name',)
     lookup_field = 'slug'
-
-
-class RetrieveUpdateViewSet(mixins.RetrieveModelMixin,
-                            mixins.UpdateModelMixin, viewsets.GenericViewSet):
-    """
-    Набор представлений, обеспечивающий действия 'retrieve','update'.
-    """
-    pass
