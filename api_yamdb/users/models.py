@@ -70,6 +70,21 @@ class CustomUser(AbstractBaseUser):
 
     objects = CustomUserManager()
 
+    @property
+    def is_user(self):
+        """Описываем свойства для пермишенов."""
+        return self.role == 'user'
+
+    @property
+    def is_admin_or_superuser(self):
+        """Описываем свойства для пермишенов."""
+        return self.role == 'admin' or self.is_superuser
+
+    @property
+    def is_admin_or_moderator(self):
+        """Описываем свойства для пермишенов."""
+        return self.role in ('admin', 'moderator') or self.is_superuser
+
     def __str__(self):
         return self.username
 

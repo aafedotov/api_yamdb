@@ -8,15 +8,7 @@ class OnlyAdminPermission(permissions.BasePermission):
 
     def has_permission(self, request, view):
         return (request.user.is_authenticated
-                and (request.user.role == 'admin'
-                     or request.user.is_superuser
-                     or view.kwargs.get('username') == 'me')
-                )
-
-    def has_object_permission(self, request, view, obj):
-        if view.kwargs.get('username') == 'me':
-            return request.user == obj
-        return True
+                and request.user.is_admin_or_superuser)
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):
@@ -31,9 +23,7 @@ class IsAdminOrReadOnly(permissions.BasePermission):
             return True
         else:
             return (request.user.is_authenticated
-                    and (request.user.role == 'admin'
-                         or request.user.is_superuser)
-                    )
+                    and request.user.is_admin_or_superuser)
 
 
 class ReadOnlyOrAuthorOrAdmin(permissions.BasePermission):
@@ -50,7 +40,6 @@ class ReadOnlyOrAuthorOrAdmin(permissions.BasePermission):
         if request.method == 'GET':
             return True
         if (request.user.is_authenticated
-                and (request.user.role in ('admin', 'moderator')
-                     or request.user.is_superuser)):
+                and request.user.is_admin_or_moderator):
             return True
         return request.user.is_authenticated and request.user == obj.author
