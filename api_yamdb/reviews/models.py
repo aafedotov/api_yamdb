@@ -39,7 +39,7 @@ class Title(models.Model):
                                  on_delete=models.SET_NULL,
                                  null=True,
                                  verbose_name='категория',
-                                 help_text='Выберите категорию для произведения')
+                                 help_text='Выберите категорию')
     genre = models.ManyToManyField(Genre,
                                    related_name='titles',
                                    through='GenreTitle',
@@ -47,7 +47,7 @@ class Title(models.Model):
                                    help_text='Выберите жанр для произведения')
     description = models.TextField(blank=True, null=True,
                                    verbose_name='описание произведения',
-                                   help_text='Введите краткое описание произведения'
+                                   help_text='Введите краткое описание'
                                    )
 
     def __str__(self):
@@ -96,7 +96,10 @@ class Review(models.Model):
 
 class Comment(models.Model):
     review = models.ForeignKey(
-        Review, on_delete=models.CASCADE, related_name='comments', verbose_name='рейтинг')
+        Review, on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='рейтинг'
+    )
     text = models.TextField(verbose_name='текст')
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
