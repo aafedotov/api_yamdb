@@ -9,11 +9,11 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+
 from reviews.models import Review, Title, Genre, Category
 from users.models import CustomUser
-
 from .filters import TitleFilter
-from .mixins import CreateDestroyListViewSet
+from .mixins import CreateDestroyListViewSet, RetrieveUpdateViewSet
 from .permissions import (
     OnlyAdminPermission, IsAdminOrReadOnly, ReadOnlyOrAuthorOrAdmin
 )
@@ -33,34 +33,6 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     search_fields = ('username',)
     lookup_field = 'username'
-
-    def get_object(self):
-        """Получаем себя при обращении на users/me."""
-        if self.kwargs['username'] == 'me':
-            obj = self.request.user
-            self.check_object_permissions(self.request, obj)
-            return obj
-        return super().get_object()
-
-    def perform_update(self, serializer):
-        """Запрещаем менять пользователю свою роль."""
-        if (
-                self.kwargs['username'] == 'me'
-                and self.request.user.role == 'user'
-                and serializer.data['role']):
-            return Response(
-                'Нельзя изменить роль пользователя.',
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        serializer.save()
-
-    def destroy(self, request, *args, **kwargs):
-        """Переопределяем статус-код, требования автотестов."""
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        if self.kwargs['username'] == 'me':
-            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CategoryViewSet(CreateDestroyListViewSet):
@@ -189,6 +161,27 @@ class SignUpUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
                 SignUpUserViewSet.send_confirmation_code(user, to_email)
                 return Response(serializer.data, status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UsersMeApiView(APIView):
+    """Отдельно описываем поведение для users/me."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """Получаем себя при обращении на users/me."""
+        serializer = CustomUserSerializer(self.request.user)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        """Изменяем свои поля. Поле роль обычному юзеру менять запрещено."""
+        user = self.request.user
+        serializer = CustomUserSerializer(user, context={'request': request},
+                                          data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = CustomUserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
 
 
 class GetTokenApiView(APIView):

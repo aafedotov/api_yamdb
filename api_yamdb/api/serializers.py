@@ -5,6 +5,7 @@ from django.core.validators import validate_email
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.relations import SlugRelatedField
+
 from reviews.models import Category, Genre, Title, Review, Comment
 from users.models import CustomUser
 
@@ -21,6 +22,14 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'role'
         ]
         model = CustomUser
+
+    def validate(self, data):
+        request = self.context['request']
+        if (request.method == 'PATCH'
+                and request.data.get('role')
+                and request.user.is_user):
+            raise serializers.ValidationError('Нельзя менять свою роль.')
+        return data
 
 
 class CategorySerializer(serializers.ModelSerializer):
