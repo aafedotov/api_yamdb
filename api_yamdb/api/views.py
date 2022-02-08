@@ -9,11 +9,11 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+
 from reviews.models import Review, Title, Genre, Category
 from users.models import CustomUser
-
 from .filters import TitleFilter
-from .mixins import CreateDestroyListViewSet
+from .mixins import CreateDestroyListViewSet, RetrieveUpdateViewSet
 from .permissions import (
     OnlyAdminPermission, IsAdminOrReadOnly, ReadOnlyOrAuthorOrAdmin
 )
@@ -34,55 +34,17 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     search_fields = ('username',)
     lookup_field = 'username'
 
-    def get_object(self):
-        """Получаем себя при обращении на users/me."""
-        if self.kwargs['username'] == 'me':
-            obj = self.request.user
-            self.check_object_permissions(self.request, obj)
-            return obj
-        return super().get_object()
-
-    def perform_update(self, serializer):
-        """Запрещаем менять пользователю свою роль."""
-        if (
-                self.kwargs['username'] == 'me'
-                and self.request.user.role == 'user'
-                and serializer.data['role']):
-            return Response(
-                'Нельзя изменить роль пользователя.',
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        serializer.save()
-
-    def destroy(self, request, *args, **kwargs):
-        """Переопределяем статус-код, требования автотестов."""
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        if self.kwargs['username'] == 'me':
-            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
 
 class CategoryViewSet(CreateDestroyListViewSet):
     """View-set для эндпоинта categories."""
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [IsAdminOrReadOnly]
-    pagination_class = PageNumberPagination
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
-    search_fields = ('name',)
-    lookup_field = 'slug'
 
 
 class GenreViewSet(CreateDestroyListViewSet):
     """View-set для эндпоинта genre."""
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = [IsAdminOrReadOnly]
-    pagination_class = PageNumberPagination
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
-    search_fields = ('name',)
-    lookup_field = 'slug'
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -129,14 +91,18 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Получаем комменты к нужному отзыву."""
-        review_id = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
-        queryset = review_id.comments.all()
+        review_id = self.kwargs.get('review_id')
+        title_id = self.kwargs.get('title_id')
+        review = get_object_or_404(Review, pk=review_id, title__id=title_id)
+        queryset = review.comments.all()
         return queryset
 
     def perform_create(self, serializer):
         """Переопределяем сохранение отзыва и автора."""
-        review_id = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
-        serializer.save(author=self.request.user, review=review_id)
+        review_id = self.kwargs.get('review_id')
+        title_id = self.kwargs.get('title_id')
+        review = get_object_or_404(Review, pk=review_id, title__id=title_id)
+        serializer.save(author=self.request.user, review=review)
 
 
 class SignUpUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
@@ -174,20 +140,39 @@ class SignUpUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
     def perform_create(self, serializer):
         """Сохраняем юзера, направляем код подтверждения на почту."""
+        serializer.is_valid(raise_exception=True)
+        user, created = CustomUser.objects.get_or_create(
+            username=serializer.validated_data['username'],
+            email=serializer.validated_data['email']
+        )
+        to_email = serializer.validated_data['email']
+        if created:
+            user.is_active = False
+            user.save()
+            SignUpUserViewSet.send_confirmation_code(user, to_email)
+            return Response(serializer.data, status.HTTP_200_OK)
+        else:
+            SignUpUserViewSet.send_confirmation_code(user, to_email)
+            return Response(serializer.data, status.HTTP_200_OK)
+
+
+class UsersMeApiView(APIView):
+    """Отдельно описываем поведение для users/me."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """Получаем себя при обращении на users/me."""
+        serializer = CustomUserSerializer(self.request.user)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        """Изменяем свои поля."""
+        user = self.request.user
+        serializer = CustomUserSerializer(user, context={'request': request},
+                                          data=request.data, partial=True)
         if serializer.is_valid():
-            user, created = CustomUser.objects.get_or_create(
-                username=serializer.validated_data['username'],
-                email=serializer.validated_data['email']
-            )
-            to_email = serializer.validated_data['email']
-            if created:
-                user.is_active = False
-                user.save()
-                SignUpUserViewSet.send_confirmation_code(user, to_email)
-                return Response(serializer.data, status.HTTP_200_OK)
-            else:
-                SignUpUserViewSet.send_confirmation_code(user, to_email)
-                return Response(serializer.data, status.HTTP_200_OK)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -198,23 +183,22 @@ class GetTokenApiView(APIView):
     def post(self, request):
         """Генерим JWT-токен."""
         serializer = GetTokenSerializer(data=request.data)
-        if serializer.is_valid():
-            username = serializer.validated_data['username']
-            confirmation_code = serializer.validated_data['confirmation_code']
-            if CustomUser.objects.filter(username=username).exists():
-                user = CustomUser.objects.get(username=username)
-                if default_token_generator.check_token(
-                        user, confirmation_code
-                ):
-                    access_token = RefreshToken.for_user(user).access_token
-                    user.is_active = True
-                    user.save()
-                    data = {"token": str(access_token)}
-                    return Response(data, status=status.HTTP_200_OK)
-                return Response(
-                    'Неверный e-mail.', status=status.HTTP_400_BAD_REQUEST
-                )
+        serializer.is_valid(raise_exception=True)
+        username = serializer.validated_data['username']
+        confirmation_code = serializer.validated_data['confirmation_code']
+        if CustomUser.objects.filter(username=username).exists():
+            user = CustomUser.objects.get(username=username)
+            if default_token_generator.check_token(
+                    user, confirmation_code
+            ):
+                access_token = RefreshToken.for_user(user).access_token
+                user.is_active = True
+                user.save()
+                data = {"token": str(access_token)}
+                return Response(data, status=status.HTTP_200_OK)
             return Response(
-                'Пользователь не найден.', status=status.HTTP_404_NOT_FOUND
+                'Неверный e-mail.', status=status.HTTP_400_BAD_REQUEST
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            'Пользователь не найден.', status=status.HTTP_404_NOT_FOUND
+        )
