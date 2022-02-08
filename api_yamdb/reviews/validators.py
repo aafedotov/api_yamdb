@@ -7,5 +7,5 @@ def validate_year(value):
     """Валидируем год."""
     year_now = date.today().year
     if year_now < value < 0:
-        raise ValidationError('Год выпуска не может быть больше текущего и иметь отрицательное значение!')
+        raise ValidationError('Год выпуска невалидный!')
     return value

@@ -21,14 +21,6 @@ class GenreAdmin(admin.ModelAdmin):
     empty_value_display = '-пусто-'
 
 
-# class TitleAdmin(admin.ModelAdmin):
-#     """Отображение поля many-to-many в админке."""
-#     list_display = ['name', 'year', 'category', 'show_genres', 'description']
-#
-#     def show_genres(self, obj):
-#         return '\n'.join([item.name for item in obj.genre.all()])
-
-
 class TitleAdmin(admin.ModelAdmin):
     """
     Администрирование произведений.
@@ -69,6 +61,3 @@ admin.site.register(Genre, GenreAdmin)
 admin.site.register(Title, TitleAdmin)
 admin.site.register(Review, ReviewAdmin)
 admin.site.register(Comment, CommentAdmin)
-
-
-

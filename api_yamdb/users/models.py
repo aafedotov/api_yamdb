@@ -70,8 +70,10 @@ class CustomUser(AbstractBaseUser):
                             default='user', max_length=64,
                             verbose_name='role',)
     bio = models.TextField(blank=True, verbose_name='о себе')
-    first_name = models.CharField(max_length=150, blank=True, verbose_name='имя')
-    last_name = models.CharField(max_length=150, blank=True, verbose_name='фамилия')
+    first_name = models.CharField(max_length=150, blank=True,
+                                  verbose_name='имя')
+    last_name = models.CharField(max_length=150, blank=True,
+                                 verbose_name='фамилия')
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']

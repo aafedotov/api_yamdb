@@ -13,7 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from reviews.models import Review, Title, Genre, Category
 from users.models import CustomUser
 from .filters import TitleFilter
-from .mixins import CreateDestroyListViewSet, RetrieveUpdateViewSet
+from .mixins import CreateDestroyListViewSet
 from .permissions import (
     OnlyAdminPermission, IsAdminOrReadOnly, ReadOnlyOrAuthorOrAdmin
 )
