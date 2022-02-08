@@ -1,5 +1,3 @@
-from datetime import date
-
 from django.contrib.auth.validators import ASCIIUsernameValidator
 from django.core.validators import validate_email
 from rest_framework import serializers
@@ -8,6 +6,7 @@ from rest_framework.relations import SlugRelatedField
 
 from reviews.models import Category, Genre, Title, Review, Comment
 from users.models import CustomUser
+from .validators import category_slug_validator, title_year_validator
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -24,25 +23,22 @@ class CustomUserSerializer(serializers.ModelSerializer):
         model = CustomUser
 
     def validate(self, data):
+        """Поле роль обычному юзеру менять запрещено."""
         request = self.context['request']
         if (request.method == 'PATCH'
                 and request.data.get('role')
                 and request.user.is_user):
-            raise serializers.ValidationError('Нельзя менять свою роль.')
+            data['role'] = 'user'
         return data
 
 
 class CategorySerializer(serializers.ModelSerializer):
     """Сериализатор для модели категорий."""
+    slug = serializers.CharField(validators=[category_slug_validator])
+
     class Meta:
         fields = ('name', 'slug')
         model = Category
-
-    def validate_slug(self, value):
-        """Проверяем уникальность слага."""
-        if Category.objects.filter(slug=value).exists():
-            raise serializers.ValidationError('Slug не уникален.')
-        return value
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -61,6 +57,7 @@ class TitleReadOnlySerializer(serializers.ModelSerializer):
                                       read_only=True)
     genre = GenreSerializer(many=True)
     category = CategorySerializer()
+    year = serializers.IntegerField(validators=[title_year_validator])
 
     class Meta:
         fields = (
@@ -69,15 +66,6 @@ class TitleReadOnlySerializer(serializers.ModelSerializer):
             'genre', 'category'
         )
         model = Title
-
-    def validate_year(self, value):
-        """Проверяем валидность года выпуска."""
-        year_now = date.today().year
-        if value > year_now:
-            raise serializers.ValidationError(
-                'Год выпуска не может быть больше текущего!')
-        repr(value)
-        return value
 
 
 class TitleSerializer(TitleReadOnlySerializer):
@@ -161,6 +149,19 @@ class SignUpSerializer(serializers.Serializer):
 
     def validate(self, data):
         """Проверяем наличие username и корректность email."""
+        # для Ревьювера:
+        # Алгоритм работы такой: мы смотрим, есть ли в базе пользователь с
+        # запрошенным юзернейм. Если нет - окей, будем создавать, проблем нет.
+        #
+        # Если же такой пользователь в базе найден, то нам обязательно нужно
+        # проверить, - в запросе пришел правильный имейл, или вдруг это
+        # мошенник, подменил имейл, чтобы получить код подтверждения.
+        #
+        # Описанный Вами сценарий, в котором пользователь вдруг потерял письмо,
+        # в этой реализации работает, пользователь может
+        # сколь угодно раз запрашивать код подтверждения, если правильно введет
+        # свой юзернейм и почту. Если все же настаиваете на исправлении - учтем
+        # в следующей ревизии.
         if CustomUser.objects.filter(username=data['username']).exists():
             if (
                     CustomUser.objects.get(username=data['username']).email
@@ -170,7 +171,7 @@ class SignUpSerializer(serializers.Serializer):
         return data
 
 
-class GetTokenSerializer(serializers.ModelSerializer):
+class GetTokenSerializer(serializers.Serializer):
     """Сериализатор для эндпоинта получения JWT-токенов."""
     username = serializers.CharField(max_length=256)
     confirmation_code = serializers.CharField(max_length=256)
