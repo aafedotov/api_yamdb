@@ -15,7 +15,7 @@ def category_slug_validator(value):
 def title_year_validator(value):
     """Проверяем валидность года выпуска."""
     year_now = date.today().year
-    if value > year_now or value < 0:
-        raise ValidationError(
-            'Год выпуска не может быть больше текущего!')
-    return value
+    if 0 < value <= year_now:
+        return value
+    raise ValidationError(
+        'Год выпуска не может быть больше текущего!')

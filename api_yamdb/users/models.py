@@ -41,6 +41,14 @@ class CustomUserManager(BaseUserManager):
         return user
 
 
+class UserRole:
+    """Определяем роли пользователей."""
+
+    USER = 'user'
+    MODERATOR = 'moderator'
+    ADMIN = 'admin'
+
+
 class CustomUser(AbstractBaseUser):
     """Описываем кастомную модель пользователя."""
     email = models.EmailField(unique=True, max_length=254,
@@ -62,9 +70,9 @@ class CustomUser(AbstractBaseUser):
                                        verbose_name='Суперпользователь')
 
     ROLE_CHOICES = (
-        ('user', 'Аутентифицированный пользователь'),
-        ('moderator', 'Модератор'),
-        ('admin', 'Администратор')
+        (UserRole.USER, 'Аутентифицированный пользователь'),
+        (UserRole.MODERATOR, 'Модератор'),
+        (UserRole.ADMIN, 'Администратор')
     )
     role = models.CharField(choices=ROLE_CHOICES,
                             default='user', max_length=64,
@@ -83,17 +91,18 @@ class CustomUser(AbstractBaseUser):
     @property
     def is_user(self):
         """Описываем свойства для пермишенов."""
-        return self.role == 'user'
+        return self.role == UserRole.USER
 
     @property
     def is_admin_or_superuser(self):
         """Описываем свойства для пермишенов."""
-        return self.role == 'admin' or self.is_superuser
+        return self.role == UserRole.ADMIN or self.is_superuser
 
     @property
     def is_admin_or_moderator(self):
         """Описываем свойства для пермишенов."""
-        return self.role in ('admin', 'moderator') or self.is_superuser
+        return (self.role in (UserRole.ADMIN, UserRole.MODERATOR)
+                or self.is_superuser)
 
     def __str__(self):
         return self.username

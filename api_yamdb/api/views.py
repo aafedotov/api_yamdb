@@ -151,9 +151,8 @@ class SignUpUserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
             user.save()
             SignUpUserViewSet.send_confirmation_code(user, to_email)
             return Response(serializer.data, status.HTTP_200_OK)
-        else:
-            SignUpUserViewSet.send_confirmation_code(user, to_email)
-            return Response(serializer.data, status.HTTP_200_OK)
+        SignUpUserViewSet.send_confirmation_code(user, to_email)
+        return Response(serializer.data, status.HTTP_200_OK)
 
 
 class UsersMeApiView(APIView):
@@ -186,19 +185,19 @@ class GetTokenApiView(APIView):
         serializer.is_valid(raise_exception=True)
         username = serializer.validated_data['username']
         confirmation_code = serializer.validated_data['confirmation_code']
-        if CustomUser.objects.filter(username=username).exists():
-            user = CustomUser.objects.get(username=username)
-            if default_token_generator.check_token(
-                    user, confirmation_code
-            ):
-                access_token = RefreshToken.for_user(user).access_token
-                user.is_active = True
-                user.save()
-                data = {"token": str(access_token)}
-                return Response(data, status=status.HTTP_200_OK)
+        if not CustomUser.objects.filter(username=username).exists():
+            return Response(
+                'Пользователь не найден.', status=status.HTTP_404_NOT_FOUND
+            )
+        user = CustomUser.objects.get(username=username)
+        if not default_token_generator.check_token(
+                user, confirmation_code
+        ):
             return Response(
                 'Неверный e-mail.', status=status.HTTP_400_BAD_REQUEST
             )
-        return Response(
-            'Пользователь не найден.', status=status.HTTP_404_NOT_FOUND
-        )
+        access_token = RefreshToken.for_user(user).access_token
+        user.is_active = True
+        user.save()
+        data = {"token": str(access_token)}
+        return Response(data, status=status.HTTP_200_OK)

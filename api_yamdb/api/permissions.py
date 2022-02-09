@@ -19,11 +19,10 @@ class IsAdminOrReadOnly(permissions.BasePermission):
     message = 'Доступно только для Администратора'
 
     def has_permission(self, request, view):
-        if request.method == 'GET':
+        if request.method in permissions.SAFE_METHODS:
             return True
-        else:
-            return (request.user.is_authenticated
-                    and request.user.is_admin_or_superuser)
+        return (request.user.is_authenticated
+                and request.user.is_admin_or_superuser)
 
 
 class ReadOnlyOrAuthorOrAdmin(permissions.BasePermission):
@@ -32,12 +31,12 @@ class ReadOnlyOrAuthorOrAdmin(permissions.BasePermission):
     message = 'У вас недостаточно прав для выполнения данной операции.'
 
     def has_permission(self, request, view):
-        if request.method == 'GET':
+        if request.method in permissions.SAFE_METHODS:
             return True
         return request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
-        if request.method == 'GET':
+        if request.method in permissions.SAFE_METHODS:
             return True
         if (request.user.is_authenticated
                 and request.user.is_admin_or_moderator):

@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models import UniqueConstraint
 
 from reviews.validators import validate_year
 
@@ -88,7 +89,12 @@ class Review(models.Model):
 
     class Meta:
         ordering = ('-pub_date',)
-        unique_together = ('author', 'title')
+        constraints = [
+            UniqueConstraint(
+                fields=['title', 'author'],
+                name='unique_author_review'
+            )
+        ]
 
     def __str__(self):
         return self.text
@@ -103,7 +109,7 @@ class Comment(models.Model):
     text = models.TextField(verbose_name='текст')
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name="comments",
+        related_name='comments',
         verbose_name='автор')
     pub_date = models.DateTimeField(auto_now_add=True,
                                     db_index=True,
